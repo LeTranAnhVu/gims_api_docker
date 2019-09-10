@@ -1,0 +1,56 @@
+# recreate:  docker-compose up -d --force-recreate --build
+# restart: docker-compose restart
+# stop: docker-compose stop
+# start: docker-compose start
+# work with php artisan : docker exec -it c-php bash
+version: '3'
+
+#NETWORK
+networks:
+  google_cloud:
+    driver: bridge
+
+#SERVICES
+services:
+  # php fpm
+  my-php:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    container_name: c-php
+    networks:
+      - google_cloud
+    volumes:
+      - .:/home/www/mysite
+    working_dir: /home/www/mysite
+    # RUN WORKER IN LARAVEL
+  # web-server
+  my-httpd:
+    image: httpd:latest
+    container_name: c-httpd
+    networks:
+      - google_cloud
+    volumes:
+      - .:/home/www/mysite
+      - ./docker/httpd/httpd.conf:/usr/local/apache2/conf/httpd.conf
+      - ./docker/httpd/hosts:/etc/hosts
+    ports:
+      - "80:80"
+      - "443:443"
+    working_dir: /home/www/mysite
+
+  # database
+  # postgres
+  my-postgres:
+    image: postgres:11
+    container_name: c-mypostgres
+    networks:
+      - google_cloud
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+    volumes:
+      - ./docker_db_storage:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
